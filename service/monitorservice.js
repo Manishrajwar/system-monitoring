@@ -1,5 +1,4 @@
 import os from "os"
-import osu from "node-os-utils"
 
 export default {
     getMetrics: async()=>{
