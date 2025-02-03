@@ -80,8 +80,16 @@ app.get('/allMetrics', async (req, res) => {
 setInterval(async () => {
   try {
     const metrics = await monitorservice.getMetrics();
-    console.log("etric",metrics);
     io.emit("server_metrics", metrics); 
+  } catch (error) {
+    console.error("Error fetching metrics:", error);
+  }
+}, 5000);
+
+setInterval(async () => {
+  try {
+    const metrics = await Metrics.find().limit(10); 
+    io.emit("allMetrics", metrics); 
   } catch (error) {
     console.error("Error fetching metrics:", error);
   }
