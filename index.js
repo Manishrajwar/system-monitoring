@@ -1,57 +1,100 @@
 import express from "express";
-import http from "http";  // Import the http module
+import http from "http";  
 import serverconfig from "./config/serverconfig.js";
 import monitorrouter from "./router/monitorrouter.js";
-import monitorservice from "./service/monitorservice.js";  // Import your monitor service
-import cors from "cors";  // Import the CORS package
-import { Server } from "socket.io";  // Import Server from socket.io
+import monitorservice from "./service/monitorservice.js";  
+import cors from "cors";  
+import { Server } from "socket.io";  
+import Metrics from "./model/Metrics.js"
+import mongoose from "mongoose";
 
 const app = express();
-const server = http.createServer(app);  // Create an HTTP server using express
+const server = http.createServer(app);  
 
-// Allow CORS for both HTTP and WebSocket (Socket.IO)
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",  // Frontend URL
+    origin: "http://localhost:3000", 
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type"],
-    credentials: true,  // Allow credentials if needed
+    credentials: true,  
   }
 });
 
 app.use(cors());
 app.use(express.static("public"));
+app.use(express.json()); 
 
-// View engine setup
+
+mongoose.connect('mongodb://localhost:27017/serverMetrics', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+    .then(() => {
+      console.log('Connected to MongoDB');
+    })
+    .catch(err => {
+      console.error('MongoDB connection error:', err);
+    });
+
 app.set("view engine", "ejs");
 
 const PORT = serverconfig.PORT || 5000;
 
-// Routes
 app.use("/", monitorrouter);
 
-// Real-time monitoring: emit server metrics every 5 seconds
+
+
+// POST route to save metrics data
+app.post('/save-metrics', async (req, res) => {
+    try {
+      const { system_info, MEMORY_INFO } = req.body;
+    console.log("system_info" , system_info , "MEMORY_INFO" , MEMORY_INFO);
+      const newMetrics = new Metrics({
+        system_info,
+        MEMORY_INFO
+      });
+  
+      await newMetrics.save();
+      console.log("newMetrics",newMetrics);
+      
+      res.status(201).json({ message: 'Metrics saved successfully!' });
+    } catch (error) {
+      console.error('Error saving metrics:', error);
+      res.status(500).json({ message: 'Server Error' });
+    }
+  });
+  
+
+app.get('/allMetrics', async (req, res) => {
+    try {
+      const metrics = await Metrics.find().limit(10); 
+      res.status(200).json(metrics);
+    } catch (error) {
+      console.error('Error fetching metrics:', error);
+      res.status(500).json({ message: 'Server Error' });
+    }
+  });
+
+  
+
 setInterval(async () => {
   try {
     const metrics = await monitorservice.getMetrics();
     console.log("etric",metrics);
-    io.emit("server_metrics", metrics);  // Emit metrics to all connected clients
+    io.emit("server_metrics", metrics); 
   } catch (error) {
     console.error("Error fetching metrics:", error);
   }
 }, 5000);
 
-// Handle Socket.IO connections
 io.on("connection", (socket) => {
   console.log("A user connected");
 
-  // Optionally listen for custom events from the client
   socket.on("disconnect", () => {
     console.log("User disconnected");
   });
 });
 
-// Error handling middleware (optional)
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send('Something went wrong!');
