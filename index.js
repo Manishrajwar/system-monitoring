@@ -24,8 +24,9 @@ app.use(cors());
 app.use(express.static("public"));
 app.use(express.json()); 
 
+// mongodb+srv://manishsinghrajwar30:RfNZ5bbDI06z6atb@server-monitoring.nusyv.mongodb.net/
 
-mongoose.connect('mongodb+srv://manishsinghrajwar30:RfNZ5bbDI06z6atb@server-monitoring.nusyv.mongodb.net/')  // Removed deprecated options
+mongoose.connect('mongodb://127.0.0.1:27017/serverMetrics')  // Removed deprecated options
   .then(() => console.log('✅ Connected to MongoDB'))
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
