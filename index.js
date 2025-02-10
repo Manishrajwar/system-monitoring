@@ -1,6 +1,7 @@
 import express from "express";
 import http from "http";  
 import serverconfig from "./config/serverconfig.js";
+import promRoute from "./router/promRoute.js";
 import monitorrouter from "./router/monitorrouter.js";
 import monitorservice from "./service/monitorservice.js";  
 import cors from "cors";  
@@ -24,9 +25,8 @@ app.use(cors());
 app.use(express.static("public"));
 app.use(express.json()); 
 
-// mongodb+srv://manishsinghrajwar30:RfNZ5bbDI06z6atb@server-monitoring.nusyv.mongodb.net/
 
-mongoose.connect('mongodb://127.0.0.1:27017/serverMetrics')  // Removed deprecated options
+mongoose.connect('mongodb://127.0.0.1:27017/serverMetrics')  
   .then(() => console.log('✅ Connected to MongoDB'))
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
@@ -35,11 +35,14 @@ app.set("view engine", "ejs");
 
 const PORT = serverconfig.PORT || 5000;
 
+app.use("/", promRoute);
+
+// PREVIOUS CODE 
+
 app.use("/", monitorrouter);
 
 
 
-// POST route to save metrics data
 app.post('/save-metrics', async (req, res) => {
     try {
       const { system_info, MEMORY_INFO } = req.body;
@@ -102,6 +105,11 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send('Something went wrong!');
 });
+
+
+// PREVIOUS CODE END
+
+
 
 server.listen(PORT, () => {
   console.info(`Server is running on port ${PORT}`);
