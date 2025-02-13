@@ -8,6 +8,7 @@ import cors from "cors";
 import { Server } from "socket.io";  
 import Metrics from "./model/Metrics.js"
 import mongoose from "mongoose";
+import Downtime from "./model/Downtime.js";
 
 const app = express();
 const server = http.createServer(app);  
@@ -35,25 +36,24 @@ app.set("view engine", "ejs");
 
 const PORT = serverconfig.PORT || 5000;
 
-app.use("/", promRoute);
-
 // PREVIOUS CODE 
 
 app.use("/", monitorrouter);
 
-
-
 app.post('/save-metrics', async (req, res) => {
     try {
-      const { system_info, MEMORY_INFO } = req.body;
-    console.log("system_info" , system_info , "MEMORY_INFO" , MEMORY_INFO);
+      const { system_info, MEMORY_INFO, ip } = req.body;
+
+      console.log("system_info, MEMORY_INFO, ip" ,system_info, MEMORY_INFO, ip);
+      
       const newMetrics = new Metrics({
+
         system_info,
-        MEMORY_INFO
+        MEMORY_INFO,
+        ip
       });
   
       await newMetrics.save();
-      console.log("newMetrics",newMetrics);
       
       res.status(201).json({ message: 'Metrics saved successfully!' });
     } catch (error) {
@@ -61,11 +61,25 @@ app.post('/save-metrics', async (req, res) => {
       res.status(500).json({ message: 'Server Error' });
     }
   });
+
+  app.get('/downtime-history', async (req, res) => {
+    try {
+        const downtimes = await Downtime.find().sort({ startTime: -1 });
+        res.status(200).json(downtimes);
+    } catch (error) {
+        console.error('Error fetching downtime history:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
   
 
-app.get('/allMetrics', async (req, res) => {
+app.post('/allMetrics', async (req, res) => {
     try {
-      const metrics = await Metrics.find().limit(10); 
+
+      const {ip} =req.body;
+      
+      const metrics = await Metrics.find({ip}); 
       res.status(200).json(metrics);
     } catch (error) {
       console.error('Error fetching metrics:', error);
@@ -86,7 +100,7 @@ setInterval(async () => {
 
 setInterval(async () => {
   try {
-    const metrics = await Metrics.find().limit(10); 
+    const metrics = await Metrics.find(); 
     io.emit("allMetrics", metrics); 
   } catch (error) {
     console.error("Error fetching metrics:", error);
