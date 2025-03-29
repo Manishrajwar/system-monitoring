@@ -9,6 +9,9 @@ import mongoose from "mongoose";
 import cors from "cors"; 
 
 
+ // CPU_LOAD: "1.3.6.1.4.1.2021.10.1.5.1", 
+    // MEMORY_USAGE: "1.3.6.1.4.1.2021.4.6.0" 
+
 const app = express();
 
 const server = http.createServer(app); 
@@ -25,15 +28,18 @@ app.use(cors())
 app.use(express.json()); 
 
 mongoose.connect('mongodb://127.0.0.1:27017/servermonitoring')  
-  .then(() => console.log('✅ Connected to MongoDB'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
+  .then(() => console.log(' Connected to MongoDB'))
+  .catch(err => console.error(' MongoDB connection error:', err));
 
 
 const OIDS = {
     DEVICE_NAME: "1.3.6.1.2.1.1.5.0", 
     UPTIME: "1.3.6.1.2.1.1.3.0", 
-    // CPU_LOAD: "1.3.6.1.4.1.2021.10.1.5.1", 
-    // MEMORY_USAGE: "1.3.6.1.4.1.2021.4.6.0" 
+    PORT_1_NAME: "1.3.6.1.2.1.2.2.1.2.1",
+    PORT_1_STATUS: "1.3.6.1.2.1.2.2.1.8.1",
+    INCOMING_TRAFFIC: "1.3.6.1.2.1.31.1.1.1.6.1",
+    OUTGOING_TRAFFIC: "1.3.6.1.2.1.31.1.1.1.10.1"
+   
 };
 
 const pollSNMP = (device) => {
@@ -41,25 +47,43 @@ const pollSNMP = (device) => {
         const session = snmp.createSession(device.device_ip, "public");
         session.get(Object.values(OIDS), async (error, varbinds) => {
             if (error) {
-                console.error(`🟥 SNMP Error for ${device.device_ip}:`, error);
+                console.error(` SNMP Error for ${device.device_ip}:`, error);
                 resolve({
+                    // device_ip: device.device_ip,
+                    // device_name: device.device_name || "Unknown",
+                    // device_type: "switch",
+                    // status: "DOWN",
+                    // uptime: "0 days 0 hours",
+                    // cpu_load: 0,
+                    // memory_usage: 0
                     device_ip: device.device_ip,
                     device_name: device.device_name || "Unknown",
                     device_type: "switch",
                     status: "DOWN",
                     uptime: "0 days 0 hours",
-                    cpu_load: 0,
-                    memory_usage: 0
+                    port_1_name: "Unknown",
+                    port_1_status: "Unknown",
+                    incoming_traffic: 0,
+                    outgoing_traffic: 0
                 });
             } else {
                 const data = {
+                    // device_ip: device.device_ip,
+                    // device_name: varbinds[0]?.value.toString() || device.device_ip,
+                    // device_type: "switch",
+                    // status: "UP",
+                    // uptime: `${Math.floor(varbinds[1]?.value / 86400)} days ${Math.floor((varbinds[1]?.value % 86400) / 3600)} hours`,
+                    // cpu_load: parseFloat(varbinds[2]?.value) || 0,
+                    // memory_usage: parseFloat(varbinds[3]?.value) || 0
                     device_ip: device.device_ip,
                     device_name: varbinds[0]?.value.toString() || device.device_ip,
                     device_type: "switch",
                     status: "UP",
                     uptime: `${Math.floor(varbinds[1]?.value / 86400)} days ${Math.floor((varbinds[1]?.value % 86400) / 3600)} hours`,
-                    cpu_load: parseFloat(varbinds[2]?.value) || 0,
-                    memory_usage: parseFloat(varbinds[3]?.value) || 0
+                    port_1_name: varbinds[2]?.value.toString() || "Unknown",
+                    port_1_status: varbinds[3]?.value === 1 ? "UP" : "DOWN",
+                    incoming_traffic: parseFloat(varbinds[4]?.value) || 0,
+                    outgoing_traffic: parseFloat(varbinds[5]?.value) || 0
                 };
                 resolve(data);
             }
@@ -85,7 +109,7 @@ const getServerMetrics = async (device) => {
             memory_usage: usedMemory
         };
     } catch (error) {
-        console.error(`🟥 Error fetching server metrics for ${device.device_ip}:`, error);
+        console.error(` Error fetching server metrics for ${device.device_ip}:`, error);
         return {
             device_ip: device.device_ip,
             device_name: "Unknown",
@@ -110,9 +134,11 @@ const monitorDevices = async () => {
                 deviceData = await getServerMetrics(device);
             }
 
+
+            console.log("deviedata " , deviceData);
             const newHistory = new DeviceHistory(deviceData);
             await newHistory.save();
-            console.log(`✅ Data saved for ${device.device_ip}`);
+            console.log(` Data saved for ${device.device_ip}`);
 
      await Device.findByIdAndUpdate(device._id, {
         device_name: deviceData.device_name,
@@ -127,12 +153,12 @@ const monitorDevices = async () => {
 
         }
     } catch (error) {
-        console.error("🟥 Error in monitoring loop:", error);
+        console.error(" Error in monitoring loop:", error);
     }
 };
 
 setInterval(monitorDevices, 30000);
-console.log("🚀 Monitoring started...");
+console.log(" Monitoring started...");
 
 app.post("/add-device", async (req, res) => {
     try {
@@ -165,10 +191,10 @@ app.post("/add-device", async (req, res) => {
 
 
 io.on("connection", (socket) => {
-    console.log("🔥 New client connected:", socket.id);
+    console.log(" New client connected:", socket.id);
     
     socket.on("disconnect", () => {
-        console.log("❌ Client disconnected:", socket.id);
+        console.log(" Client disconnected:", socket.id);
     });
 });
 
@@ -177,7 +203,6 @@ app.get("/get-devices", async (req, res) => {
         const devices = await Device.find();
         res.status(200).json(devices);
 
-        // Emit real-time data to all connected clients
         io.emit("deviceData", devices);
     } catch (error) {
         console.error("Error fetching devices:", error);
@@ -209,7 +234,7 @@ app.post("/get-device-details", async (req, res) => {
                 last_up_time: null
             });
             await device.save();
-            console.log(`🆕 New device added: ${device_ip}`);
+            console.log(`New device added: ${device_ip}`);
         }
 
         let deviceData;
@@ -273,160 +298,3 @@ app.listen(5500, () => console.log("Server running on port 5000"));
 
 
 
-
-
-// import express from "express";
-// import http from "http";  
-// import serverconfig from "./config/serverconfig.js";
-// import promRoute from "./router/promRoute.js";
-// import monitorrouter from "./router/monitorrouter.js";
-// import monitorservice from "./service/monitorservice.js";  
-// import cors from "cors";  
-// import { Server } from "socket.io";  
-// import Metrics from "./model/Metrics.js"
-// import mongoose from "mongoose";
-// import ServerStore from "./model/server.js"
-// import Downtime from "./model/Downtime.js";
-
-// const app = express();
-// const server = http.createServer(app);  
-
-// const io = new Server(server, {
-//   cors: {
-//     origin: "http://localhost:3000", 
-//     methods: ["GET", "POST"],
-//     allowedHeaders: ["Content-Type"],
-//     credentials: true,  
-//   }
-// });
-
-// app.use(cors());
-// app.use(express.static("public"));
-// app.use(express.json()); 
-
-
-// mongoose.connect('mongodb://127.0.0.1:27017/serverMetrics')  
-//   .then(() => console.log('✅ Connected to MongoDB'))
-//   .catch(err => console.error('❌ MongoDB connection error:', err));
-
-
-// app.set("view engine", "ejs");
-
-// const PORT = serverconfig.PORT || 5000;
-
-// // PREVIOUS CODE 
-
-// app.use("/", monitorrouter);
-
-// app.post('/save-metrics', async (req, res) => {
-//     try {
-//       const { system_info, MEMORY_INFO, ip } = req.body;
-
-//       console.log("system_info, MEMORY_INFO, ip" ,system_info, MEMORY_INFO, ip);
-      
-//       const newMetrics = new Metrics({
-
-//         system_info,
-//         MEMORY_INFO,
-//         ip
-//       });
-  
-//       await newMetrics.save();
-      
-//       res.status(201).json({ message: 'Metrics saved successfully!' });
-//     } catch (error) {
-//       console.error('Error saving metrics:', error);
-//       res.status(500).json({ message: 'Server Error' });
-//     }
-//   });
-
-//   app.get('/downtime-history', async (req, res) => {
-//     try {
-//         const downtimes = await Downtime.find().sort({ startTime: -1 });
-//         res.status(200).json(downtimes);
-//     } catch (error) {
-//         console.error('Error fetching downtime history:', error);
-//         res.status(500).json({ message: 'Server Error' });
-//     }
-// });
-
-  
-// app.post("/saveIP" , async(req ,res)=>{
-//    const {ip} = req.body;
-
-//     const ispresent = await ServerStore.findOne({ip:ip});
-
-//      if(ispresent){
-//       return ;
-//      }
-//     const resp = await ServerStore.create({ip});
-//     return res.status(200).json({
-//       status:true ,
-//       message:"Succesfuly done",resp
-//     })
-// })
-
-// app.get("/getsaveIP" , async(req ,res)=>{
-//    const ips = await ServerStore.find({});
-
-//    return res.status(200).json({
-//     status:true ,
-//     data: ips
-//    })
-// }
-// )
-
-// app.post('/allMetrics', async (req, res) => {
-//     try {
-
-//       const {ip} =req.body;
-      
-//       const metrics = await Metrics.find({ip}); 
-//       res.status(200).json(metrics);
-//     } catch (error) {
-//       console.error('Error fetching metrics:', error);
-//       res.status(500).json({ message: 'Server Error' });
-//     }
-//   });
-
-  
-
-// setInterval(async () => {
-//   try {
-//     const metrics = await monitorservice.getMetrics();
-//     io.emit("server_metrics", metrics); 
-//   } catch (error) {
-//     console.error("Error fetching metrics:", error);
-//   }
-// }, 5000);
-
-// setInterval(async () => {
-//   try {
-//     const metrics = await Metrics.find(); 
-//     io.emit("allMetrics", metrics); 
-//   } catch (error) {
-//     console.error("Error fetching metrics:", error);
-//   }
-// }, 5000);
-
-// io.on("connection", (socket) => {
-//   console.log("A user connected");
-
-//   socket.on("disconnect", () => {
-//     console.log("User disconnected");
-//   });
-// });
-
-// app.use((err, req, res, next) => {
-//   console.error(err.stack);
-//   res.status(500).send('Something went wrong!');
-// });
-
-
-// // PREVIOUS CODE END
-
-
-
-// server.listen(PORT, () => {
-//   console.info(`Server is running on port ${PORT}`);
-// });
