@@ -1,23 +1,25 @@
 import mongoose from "mongoose"
 
 const DeviceSchema = new mongoose.Schema({
-    device_ip: { type: String, required: true }, // Server/Switch IP
-    device_name: { type: String }, // Name from SNMP
-    device_type: { type: String, enum: ["server", "switch"] }, // Identify type
-    status: { type: String }, // Current status
-    uptime: { type: String, default: "0 days 0 hours" }, // Last reported uptime
-    cpu_load: { type: Number, default: 0 }, // CPU Usage (%)
-    memory_usage: { type: Number, default: 0 }, // Memory Usage (%)
-    last_checked: { type: Date, default: Date.now }, // Last SNMP poll time
+    device_ip: { type: String, required: true }, 
+    device_name: { type: String }, 
+    device_type: { type: String, enum: ["server", "switch"] }, 
+    status: { type: String }, 
+    uptime: { type: String, default: "0 days 0 hours" }, 
+    cpu_load: { type: Number, default: 0 }, 
+    memory_usage: { type: Number, default: 0 }, 
+    last_checked: { type: Date, default: Date.now }, 
     down_history: [
         {
-            down_time: { type: Date }, // When it went down
-            up_time: { type: Date } // When it came back up (null if still down)
+            down_time: { type: Date }, 
+            up_time: { type: Date } 
         }
     ],
-    last_down_time: { type: Date }, // Last time it was down
-    last_up_time: { type: Date } // Last time it was up
+    last_down_time: { type: Date }, 
+    last_up_time: { type: Date } ,
+    port_1_name: { type: String, default: "Unknown" }, 
+    port_1_status: { type: String, enum: ["UP", "DOWN", "Unknown"], default: "Unknown" }, 
 });
 
 const Device = mongoose.model("Device", DeviceSchema);
-export default Device;  // ✅ Add this line
+export default Device;  

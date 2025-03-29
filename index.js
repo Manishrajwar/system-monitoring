@@ -180,7 +180,9 @@ app.post("/add-device", async (req, res) => {
             last_checked: new Date(),
             down_history: [],
             last_down_time: null,
-            last_up_time: null
+            last_up_time: null ,
+            port_1_name: "unknown"  , 
+            port_1_status: "unknown"
         });
 
         await newDevice.save();
@@ -257,7 +259,9 @@ app.post("/get-device-details", async (req, res) => {
             memory_usage: deviceData.memory_usage,
             last_checked: new Date(),
             last_down_time: deviceData.status === "DOWN" ? new Date() : device.last_down_time,
-            last_up_time: deviceData.status === "UP" ? new Date() : device.last_up_time
+            last_up_time: deviceData.status === "UP" ? new Date() : device.last_up_time,
+            port_1_name: deviceData.port_1_name ? deviceData.port_1_name : 0  , 
+            port_1_status: deviceData.port_1_status ? deviceData.port_1_status: 0
         });
 
         res.status(200).json(deviceData);
