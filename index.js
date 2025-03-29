@@ -14,7 +14,7 @@ const app = express();
 const server = http.createServer(app); 
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:3000", // Frontend URL
+        origin: "http://localhost:3000", 
         methods: ["GET", "POST"]
     }
 });
@@ -266,7 +266,7 @@ app.post("/removeDeviceip" , async(req ,res)=>{
 
 
 
-app.listen(5000, () => console.log("Server running on port 5000"));
+app.listen(5500, () => console.log("Server running on port 5000"));
 
 
 
