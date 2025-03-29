@@ -32,7 +32,7 @@ mongoose.connect('mongodb://127.0.0.1:27017/servermonitoring')
 const OIDS = {
     DEVICE_NAME: "1.3.6.1.2.1.1.5.0", 
     UPTIME: "1.3.6.1.2.1.1.3.0", 
-    CPU_LOAD: "1.3.6.1.4.1.2021.10.1.5.1", 
+    // CPU_LOAD: "1.3.6.1.4.1.2021.10.1.5.1", 
     MEMORY_USAGE: "1.3.6.1.4.1.2021.4.6.0" 
 };
 
