@@ -148,7 +148,9 @@ const monitorDevices = async () => {
         memory_usage: deviceData.memory_usage,
         last_checked: new Date(),
         last_down_time: deviceData.status === "DOWN" ? new Date() : device.last_down_time,
-        last_up_time: deviceData.status === "UP" ? new Date() : device.last_up_time
+        last_up_time: deviceData.status === "UP" ? new Date() : device.last_up_time , 
+        port_1_name: deviceData.port_1_name ? deviceData.port_1_name : 0  , 
+        port_1_status: deviceData.port_1_status ? deviceData.port_1_status: 0
     });
 
         }
