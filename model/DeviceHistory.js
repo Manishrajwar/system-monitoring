@@ -11,8 +11,8 @@ const DeviceHistorySchema = new mongoose.Schema({
 
       port_1_name: { type: String, default: "Unknown" }, 
       port_1_status: { type: String, enum: ["UP", "DOWN", "Unknown"], default: "Unknown" }, 
-      incoming_traffic: { type: Number, default: 0 }, 
-      outgoing_traffic: { type: Number, default: 0 }, 
+    //   incoming_traffic: { type: Number, default: 0 }, 
+    //   outgoing_traffic: { type: Number, default: 0 }, 
       
     timestamp: { type: Date, default: Date.now }, 
 });
